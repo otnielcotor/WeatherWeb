@@ -1,0 +1,176 @@
+Hello!
+For a new connection to you local wireless internet connection, please follow the following steps:
+1. Modify the "#define WIFI_SSID "WIFI_NAME"" and instead of WIFI_NAME put your own Wifi name.
+2. Modify the "#define WIFI_SSID "WIFI_PASSWORD"" and instead of WIFI_PASSWORD put your own Wifi password.
+3. Once you have done this, open the ARDUINO IDE online (https://www.arduino.cc/en/main/create)
+4.In the top right corner, please sign in/ create an account.
+5.Open the following link: https://create.arduino.cc/editor .
+6. Click new Sketch and paste the code, then connect the device using the provided USB cable and select the Arduino Uno WiFi Rev2.
+7. Click on the checkmark, after it is not busy anymore, click on the arrow then wait for the code to upload.
+8. Once ready, your data will be shown on the push of the button on screen or at the address : https://weatherapp-c89ac.web.app/ 
+
+
+
+
+|
+|
+|
+|
+v
+#include <dhtnew.h>
+
+#include <LiquidCrystal.h>
+#include "DHT.h"
+
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+#define DHTPIN 8
+
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+#include <Arduino_LSM6DS3.h>
+#include <Firebase_Arduino_WiFiNINA.h>
+
+#include <TimeLib.h>
+
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <WiFiUdp.h>
+
+
+#define FIREBASE_HOST "weather-db51a-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "qOQ0wxdydkkfF9qk8Vb648zbC4mKueZ5I0nPA1G4"
+#define WIFI_SSID "WIFI_NAME"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+IPAddress timeServer(129, 6, 15, 28);
+WiFiUDP Udp;
+byte packetBuffer[ 48];
+unsigned int localPort = 2390;
+
+
+FirebaseData firebaseData;
+String path = "/value";
+
+unsigned long sendNTPpa…
+[10:19 PM, 4/14/2022] Alex Telcean: #include <dhtnew.h>
+
+#include <LiquidCrystal.h>
+#include "DHT.h"
+
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+#define DHTPIN 8
+
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+#include <Arduino_LSM6DS3.h>
+#include <Firebase_Arduino_WiFiNINA.h>
+
+#include <TimeLib.h>
+
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <WiFiUdp.h>
+
+
+#define FIREBASE_HOST "weather-db51a-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "qOQ0wxdydkkfF9qk8Vb648zbC4mKueZ5I0nPA1G4"
+#define WIFI_SSID "OnePlus6"
+#define WIFI_PASSWORD "hotspotlatine"
+
+IPAddress timeServer(129, 6, 15, 28);
+WiFiUDP Udp;
+byte packetBuffer[ 48];
+unsigned int localPort = 2390;
+
+
+FirebaseData firebaseData;
+String path = "/value";
+
+unsigned long sendNTPpacket(IPAddress& address) {
+  memset(packetBuffer, 0,48);
+  packetBuffer[0] = 0b11100011;
+
+  packetBuffer[1] = 0;    
+
+  packetBuffer[2] = 6;    
+
+  packetBuffer[3] = 0xEC;  
+  packetBuffer[12]  = 49;
+
+  packetBuffer[13]  = 0x4E;
+
+  packetBuffer[14]  = 49;
+
+  packetBuffer[15]  = 52;
+  Udp.beginPacket(address, 123);
+  Udp.write(packetBuffer, 48);
+  Udp.endPacket();
+}
+
+void setup() {
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  dht.begin();
+  int status = WL_IDLE_STATUS;
+  while (status != WL_CONNECTED) {
+    status = WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    delay(300);
+  }
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, WIFI_SSID, WIFI_PASSWORD);
+  Firebase.reconnectWiFi(true);
+  Udp.begin(localPort);
+}
+
+void loop() {
+  float temp, hum;
+  float sensorValue, analogValue;
+  unsigned long epoch;
+  sendNTPpacket(timeServer);
+  if (Udp.parsePacket()) 
+  {
+    Udp.read(packetBuffer, 48);
+      unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+
+    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+    unsigned long secsSince1900 = highWord << 16 | lowWord;
+       const unsigned long seventyYears = 2208988800UL;
+    epoch = secsSince1900 - seventyYears;
+
+  }
+  setTime(epoch);
+  time_t t=now();
+  lcd.setCursor(0, 0);
+  delay(2000);
+  hum = dht.readHumidity();
+  temp = dht.readTemperature();
+  lcd.print("H: ");
+  lcd.print(hum);
+  lcd.print(" % ");
+  lcd.print(" UV:");
+  lcd.setCursor(0, 1);
+  lcd.print("T: ");
+  lcd.print(temp);
+  lcd.print(" C ");
+  analogValue = analogRead(0);
+  if (analogValue < 20)
+  {
+    sensorValue = 0;
+  }
+  else
+  {
+    sensorValue = 0.05 * analogValue - 1;
+  }
+  lcd.print(sensorValue);
+  Firebase.setFloat(firebaseData, path + "_temp", temp);
+  Firebase.setFloat(firebaseData, path + "_hum", hum);
+  Firebase.setFloat(firebaseData, path + "_UV_index", sensorValue);
+  Firebase.setString(firebaseData, path + "_date", (String)day() + "/" + (String)month() + "/" + (String)year() );
+  Firebase.setString(firebaseData, path + "_time", (String)(hour()+3) + ":" + (String)minute() + ":" + (String)second() );
+  delay(10000);
+}

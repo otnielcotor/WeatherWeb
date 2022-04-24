@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html>
+
+
+
+<head>
+
+  <meta charset="utf-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Weather App</title>
+
+  <link rel="preconnect" href=https://fonts.gstatic.com>
+
+  <link href=https://fonts.googleapis.com/css2?family=Open+Sans&display=swap rel="stylesheet">
+
+  <link rel="stylesheet" href="./style.css">
+
+
+
+  <!-- Firebase -->
+
+  <script type="module" src=https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js></script>
+
+  <script src='https://www.gstatic.com/firebasejs/3.7.4/firebase.js'></script>
+
+
+
+  <!-- SMTP Email Service -->
+
+  <script src=https://smtpjs.com/v3/smtp.js></script>
+
+
+
+</head>
+
+
+
+<body>
+
+
+
+  <div class="card">
+
+    <div class="search">
+
+      <h1>Hello!</h1>
+
+    </div>
+
+    <div>
+
+      <h2>The temperature today is :<span></span></h2>
+
+      <h1 id="temp"></h1>
+
+      <div class="flex">
+
+        <p>
+
+          Humidity: <span id="humidity"></span>
+
+        </p>
+
+        <p>
+
+          UV index: <span id="UVindex"></span>
+
+        </p>
+        <div class="tooltip">
+          <button onclick="document.getElementById('link').click()">i</button>
+          <span class="tooltiptext">If you need the steps for initialization, please click the button with an i on it
+          </span>
+          <a id="link" href="initialization.txt" target="_blank" download hidden></a>
+        </div>
+      </div>
+
+      <p class=update>
+
+        Last time updated : <span id="date"></span> at <span id="time"></span>
+      </p>
+
+    </div>
+
+  </div>
+
+
+
+  <script>
+
+    // Your web app's Firebase configuration
+
+    const firebaseConfig = {
+
+      apiKey: "AIzaSyCRGlNApK17efGFt5zrQOdjO8rw2_KCBVs",
+
+      authDomain: "weather-db51a.firebaseapp.com",
+
+      databaseURL: "https://weather-db51a-default-rtdb.firebaseio.com",
+
+      projectId: "weather-db51a",
+
+      storageBucket: "weather-db51a.appspot.com",
+
+      messagingSenderId: "560003320120",
+
+      appId: "1:560003320120:web:7ce29562ceca2e265959cd",
+
+      measurementId: "G-VH6JCPL3V3"
+
+    };
+
+    // Initialize Firebase
+
+    firebase.initializeApp(firebaseConfig);
+
+    let tempRef = document.getElementById("temp")
+
+    let UVindex = document.getElementById("UVindex")
+
+    let humidity = document.getElementById("humidity")
+
+    let date = document.getElementById("date")
+
+    let time = document.getElementById("time")
+
+    var valueTempRef = firebase.database().ref().child("value_temp")
+
+    var valueUVIndexRef = firebase.database().ref().child("value_UV_index")
+
+    var valueHumRef = firebase.database().ref().child("value_hum")
+
+    var valueDate = firebase.database().ref().child("value_date")
+
+    var valueTime = firebase.database().ref().child("value_time")
+
+    const getTemperatures = async () => {
+
+
+
+      valueTempRef.once("value").then(snapshot => {
+
+        tempRef.innerHTML = `${snapshot.val()} &#x2103;`
+
+      })
+
+
+
+    }
+
+
+
+    const getUVIndex = async () => {
+
+
+
+      valueUVIndexRef.once("value").then(snapshot => {
+
+        UVindex.innerHTML = snapshot.val()
+
+      });
+
+
+
+    }
+
+    const getDate = async () => {
+
+
+
+      valueDate.once("value").then(snapshot => {
+
+        date.innerHTML = snapshot.val()
+
+      });
+    }
+
+
+
+    const getTime = async () => {
+
+
+
+      valueTime.once("value").then(snapshot => {
+
+        time.innerHTML = snapshot.val()
+
+      });
+
+    }
+
+    const getHumidity = async () => {
+
+      
+
+      valueHumRef.once("value").then(function (snapshot) {
+        humidity.innerHTML = `${snapshot.val()}  &#65285;`
+        
+      });
+
+
+
+    }
+
+
+
+    setInterval(() => {
+
+      getTemperatures();
+
+      getUVIndex();
+
+      getHumidity();
+
+      getDate();
+
+      getTime();
+
+    }, 1000)
+
+
+
+    function sendEmail(body, subject) {
+
+      Email.send({
+
+        Host: "smtp.gmail.com",
+
+        Username: "jotinel88@gmail.com",
+
+        Password: "dvxnusvmkykoyodr",
+
+        To: 'otniel.cotor@ulbsibiu.ro',
+
+        From: "jotinel88@gmail.com",
+
+        Subject: subject,
+
+        Body: body,
+
+      });
+
+    }
+
+
+
+    var now = new Date();
+
+    var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 12, 0, 0) - now;
+
+    if (millisTill10 < 0) {
+
+      millisTill10 += 86400000; // it's after 7am, try 7am tomorrow.
+
+    }
+
+    setTimeout(function () {
+
+      sendEmail(`Today the temp is ${tempRef.innerHTML}, UVIndex is ${UVindex.innerHTML} and Humidity of ${humidity.innerHTML}`, "Test Title")
+
+    }, millisTill10);
+
+
+
+  </script>
+
+
+
+</body>
+
+
+
+</html>
